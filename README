@@ -1,0 +1,4 @@
+Adjust a just intonation scale to lie lower in the harmonic series.
+
+See the docstring for the harmonic_reduce function in harmonic_reduce.py
+for more information and an example.
