@@ -87,21 +87,26 @@ def harmonic_reduce(scale, *, max_changes, max_harmonic):
     M = 10**12
 
     x = {s: model.NewIntVar(1, M, f"x[{s}]") for s in scale}
-    b = {s: model.NewBoolVar(f"b[{s}]") for s in scale}
     u = {s: model.NewIntVar(-M, M, f"u[{s}]") for s in scale}
-    abs_u = {s: model.NewIntVar(0, M, f"abs_u[{s}]") for s in scale}
 
     for s in scale:
         model.Add(u[s] == 2 * x[s] * s.denominator - x[2] * s.numerator)
-        model.Add(u[s] == 0).OnlyEnforceIf(b[s].Not())
-        model.AddAbsEquality(abs_u[s], u[s])
 
-    model.Minimize(sum(abs_u.values()))
+    zero_constraints = {s: model.Add(u[s] == 0) for s in scale}
+
+    model.Minimize(x[2])
 
     solver = cp_model.CpSolver()
     solver.Solve(model)
 
     base_sol = {s: solver.Value(x[s]) for s in scale}
+
+    b = {s: model.NewBoolVar(f"b[{s}]") for s in scale}
+    abs_u = {s: model.NewIntVar(0, M, f"abs_u[{s}]") for s in scale}
+
+    for s in scale:
+        zero_constraints[s].OnlyEnforceIf(b[s].Not())
+        model.AddAbsEquality(abs_u[s], u[s])
 
     model.Add(sum(b.values()) <= max_changes)
     violation = model.NewIntVar(0, M, "violation")
